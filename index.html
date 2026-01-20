@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breath-Powered Thought Blaster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            transition: background 1s ease;
+        }
+
+        body.phase-idle {
+            background: radial-gradient(ellipse at bottom, #1e293b 0%, #020617 100%);
+        }
+
+        body.phase-inhale {
+            background: radial-gradient(ellipse at bottom, #1e3a5f 0%, #0a1a3a 100%);
+        }
+
+        body.phase-hold {
+            background: radial-gradient(ellipse at bottom, #3b2d5f 0%, #1a1030 100%);
+        }
+
+        body.phase-exhale {
+            background: radial-gradient(ellipse at bottom, #1e293b 0%, #0f172a 100%);
+        }
+
+        body.screen-shake {
+            animation: shake 0.5s ease-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: translateX(-8px);
+            }
+
+            20%,
+            40%,
+            60%,
+            80% {
+                transform: translateX(8px);
+            }
+        }
+
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star-layer {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+        }
+
+        .star-layer-1 {
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, white, transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(1px 1px at 90px 40px, white, transparent),
+                radial-gradient(2px 2px at 160px 120px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(1px 1px at 230px 80px, white, transparent);
+            background-size: 500px 500px;
+            animation: moveStars 80s linear infinite;
+            opacity: 0.8;
+        }
+
+        .star-layer-2 {
+            background-image:
+                radial-gradient(1px 1px at 50px 100px, white, transparent),
+                radial-gradient(2px 2px at 150px 50px, rgba(255, 255, 255, 0.6), transparent),
+                radial-gradient(1px 1px at 250px 180px, white, transparent);
+            background-size: 600px 600px;
+            animation: moveStars 120s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes moveStars {
+            from {
+                transform: translateY(0) translateX(0);
+            }
+
+            to {
+                transform: translateY(-50%) translateX(-25%);
+            }
+        }
+
+        .counter {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 20px 30px;
+            color: white;
+        }
+
+        .counter-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .counter-value {
+            font-size: 48px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform 0.15s ease;
+        }
+
+        .containment-zone {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .breathing-ring {
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 3px solid rgba(167, 139, 250, 0.4);
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.2), inset 0 0 30px rgba(167, 139, 250, 0.1);
+            transition: all 1s ease-out;
+        }
+
+        .breathing-ring.inhale {
+            transform: scale(1.3);
+            border-color: rgba(99, 179, 237, 0.6);
+            box-shadow: 0 0 50px rgba(99, 179, 237, 0.4);
+        }
+
+        .breathing-ring.hold {
+            transform: scale(1.3);
+            border-color: rgba(167, 139, 250, 0.8);
+            animation: vibrate 0.1s infinite;
+        }
+
+        .breathing-ring.exhale {
+            transform: scale(0.8);
+            border-color: rgba(100, 116, 139, 0.5);
+            box-shadow: 0 0 20px rgba(100, 116, 139, 0.2);
+        }
+
+        @keyframes vibrate {
+
+            0%,
+            100% {
+                transform: scale(1.3) translateX(0);
+            }
+
+            50% {
+                transform: scale(1.3) translateX(2px);
+            }
+        }
+
+        .breath-text {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+        }
+
+        .cycle-indicator {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .cycle-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .cycle-dot.complete {
+            background: linear-gradient(135deg, #a78bfa, #6366f1);
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+        }
+
+        .trapped-thought {
+            position: absolute;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 25px;
+            color: white;
+            font-size: 18px;
+            max-width: 250px;
+            text-align: center;
+            transition: text-shadow 0.5s ease, color 0.5s ease;
+            z-index: 11;
+        }
+
+        .trapped-thought.energized {
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(167, 139, 250, 0.6);
+        }
+
+        .stardust {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: stardustExplode var(--duration) ease-out forwards;
+        }
+
+        @keyframes stardustExplode {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0);
+            }
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+        }
+
+        .thought-input {
+            flex: 1;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .thought-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .thought-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(167, 139, 250, 0.5);
+        }
+
+        .thought-input:disabled {
+            opacity: 0.5;
+        }
+
+        .release-btn {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #6366f1 100%);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        .release-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .release-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(167, 139, 250, 0.4);
+        }
+
+        .controls {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.05);
+        }
+
+        .control-btn.muted {
+            opacity: 0.5;
+        }
+
+        .guide-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .guide-modal.active {
+            display: flex;
+        }
+
+        .guide-content {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 450px;
+            color: white;
+            text-align: center;
+        }
+
+        .guide-content h2 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .guide-steps {
+            text-align: left;
+            margin: 30px 0;
+        }
+
+        .guide-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .guide-step-num {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .guide-step-num.inhale {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .guide-step-num.hold {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        }
+
+        .guide-step-num.exhale {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+
+        .guide-step-text span {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .guide-close {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #a78bfa, #6366f1);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 600px) {
+            .counter {
+                top: 20px;
+                left: 20px;
+                padding: 15px 20px;
+            }
+
+            .counter-value {
+                font-size: 36px;
+            }
+
+            .input-wrapper {
+                flex-direction: column;
+            }
+
+            .containment-zone {
+                width: 280px;
+                height: 280px;
+            }
+
+            .breathing-ring {
+                width: 240px;
+                height: 240px;
+            }
+        }
+    </style>
+</head>
+
+<body class="phase-idle">
+    <div class="starfield">
+        <div class="star-layer star-layer-1"></div>
+        <div class="star-layer star-layer-2"></div>
+    </div>
+
+    <div class="counter">
+        <div class="counter-label">Weight Lifted</div>
+        <div class="counter-value" id="counter">0</div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" id="guide-btn" title="Breathing Guide">❓</button>
+        <button class="control-btn" id="sound-toggle" title="Toggle Sound">🔊</button>
+    </div>
+
+    <div class="containment-zone" id="containment-zone">
+        <div class="breathing-ring" id="breathing-ring"></div>
+        <div class="cycle-indicator" id="cycle-indicator"></div>
+        <div class="breath-text" id="breath-text"></div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <input type="text" class="thought-input" id="thought-input" placeholder="What's weighing on your mind?"
+                maxlength="100" autocomplete="off">
+            <button class="release-btn" id="release-btn">RELEASE</button>
+        </div>
+    </div>
+
+    <div class="guide-modal" id="guide-modal">
+        <div class="guide-content">
+            <h2>4-7-8 Breathing</h2>
+            <p style="color: rgba(255,255,255,0.6); line-height: 1.6;">A calming technique to release stress and let go
+                of heavy thoughts.</p>
+            <div class="guide-steps">
+                <div class="guide-step">
+                    <div class="guide-step-num inhale">4</div>
+                    <div class="guide-step-text"><strong>Inhale</strong><span>Breathe in deeply through your nose</span>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="guide-step-num hold">7</div>
+                    <div class="guide-step-text"><strong>Hold</strong><span>Hold your breath, let energy build</span>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="guide-step-num exhale">8</div>
+                    <div class="guide-step-text"><strong>Exhale</strong><span>Release slowly through your mouth</span>
+                    </div>
+                </div>
+            </div>
+            <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 20px;">Complete 3 cycles to blast
+                your thought away!</p>
+            <button class="guide-close" id="guide-close">Got It</button>
+        </div>
+    </div>
+
+    <script>
+        const CYCLES_REQUIRED = 3;
+        const INHALE_TIME = 4, HOLD_TIME = 7, EXHALE_TIME = 8;
+
+        let audioContext = null, soundEnabled = true, thoughtCount = 0, isActive = false;
+
+        const input = document.getElementById('thought-input');
+        const releaseBtn = document.getElementById('release-btn');
+        const containmentZone = document.getElementById('containment-zone');
+        const breathingRing = document.getElementById('breathing-ring');
+        const breathText = document.getElementById('breath-text');
+        const cycleIndicator = document.getElementById('cycle-indicator');
+        const counterElement = document.getElementById('counter');
+        const soundToggle = document.getElementById('sound-toggle');
+        const guideBtn = document.getElementById('guide-btn');
+        const guideModal = document.getElementById('guide-modal');
+        const guideClose = document.getElementById('guide-close');
+
+        function initAudio() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioContext.state === 'suspended') audioContext.resume();
+            const now = audioContext.currentTime;
+
+            if (type === 'release') {
+                [600, 900, 1200].forEach((f, i) => {
+                    const o = audioContext.createOscillator(), g = audioContext.createGain();
+                    o.type = 'sine'; o.frequency.setValueAtTime(f, now);
+                    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.04, now + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    o.connect(g).connect(audioContext.destination);
+                    o.start(now + i * 0.02); o.stop(now + 0.5);
+                });
+            } else if (type === 'blast') {
+                const bass = audioContext.createOscillator(), bg = audioContext.createGain();
+                bass.type = 'sine'; bass.frequency.setValueAtTime(120, now);
+                bass.frequency.exponentialRampToValueAtTime(25, now + 0.6);
+                bg.gain.setValueAtTime(0.5, now); bg.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                bass.connect(bg).connect(audioContext.destination);
+                bass.start(now); bass.stop(now + 0.7);
+
+                const buf = audioContext.createBuffer(1, audioContext.sampleRate * 0.4, audioContext.sampleRate);
+                const d = buf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioContext.sampleRate * 0.08));
+                const n = audioContext.createBufferSource(); n.buffer = buf;
+                const ng = audioContext.createGain(); ng.gain.setValueAtTime(0.2, now);
+                ng.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                n.connect(ng).connect(audioContext.destination);
+                n.start(now); n.stop(now + 0.4);
+
+                [500, 800, 1100, 1400, 1700].forEach((f, i) => {
+                    const o = audioContext.createOscillator(), g = audioContext.createGain();
+                    o.type = 'sine'; o.frequency.setValueAtTime(f, now + 0.05);
+                    o.frequency.exponentialRampToValueAtTime(f * 2, now + 0.4);
+                    g.gain.setValueAtTime(0, now + 0.05); g.gain.linearRampToValueAtTime(0.025, now + 0.08);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    o.connect(g).connect(audioContext.destination);
+                    o.start(now + 0.05 + i * 0.02); o.stop(now + 0.7);
+                });
+
+                if (navigator.vibrate) navigator.vibrate([150, 50, 200]);
+            }
+        }
+
+        function createExplosion(x, y) {
+            const colors = ['rgba(167,139,250,1)', 'rgba(129,140,248,1)', 'rgba(99,102,241,1)', 'rgba(255,255,255,1)', 'rgba(255,215,0,1)', 'rgba(192,180,255,1)'];
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'stardust';
+                const angle = (i / 40) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+                const dist = 150 + Math.random() * 300;
+                const tx = Math.cos(angle) * dist, ty = Math.sin(angle) * dist;
+                const dur = 1 + Math.random() * 0.8, size = 5 + Math.random() * 10;
+                const col = colors[Math.floor(Math.random() * colors.length)];
+                p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size}px;background:radial-gradient(circle,${col} 0%,transparent 70%);box-shadow:0 0 ${size * 2}px ${col},0 0 ${size * 4}px ${col};--tx:${tx}px;--ty:${ty}px;--duration:${dur}s;`;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), dur * 1000);
+            }
+            const flash = document.createElement('div');
+            flash.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:200px;height:200px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,255,255,0.9) 0%,transparent 70%);border-radius:50%;pointer-events:none;animation:flashFade 0.5s ease-out forwards;`;
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `@keyframes flashFade{0%{opacity:1;transform:translate(-50%,-50%) scale(0.5);}100%{opacity:0;transform:translate(-50%,-50%) scale(3);}}`;
+        document.head.appendChild(style);
+
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            soundToggle.classList.toggle('muted', !soundEnabled);
+        });
+
+        guideBtn.addEventListener('click', () => guideModal.classList.add('active'));
+        guideClose.addEventListener('click', () => guideModal.classList.remove('active'));
+        guideModal.addEventListener('click', (e) => { if (e.target === guideModal) guideModal.classList.remove('active'); });
+
+        function releaseThought() {
+            const text = input.value.trim();
+            if (!text || isActive) return;
+
+            isActive = true;
+            input.disabled = true;
+            releaseBtn.disabled = true;
+            playSound('release');
+
+            // Create thought
+            const thought = document.createElement('div');
+            thought.className = 'trapped-thought';
+            thought.textContent = text;
+            containmentZone.appendChild(thought);
+
+            // Create cycle dots
+            cycleIndicator.innerHTML = '';
+            for (let i = 0; i < CYCLES_REQUIRED; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'cycle-dot';
+                cycleIndicator.appendChild(dot);
+            }
+
+            // Drift animation
+            let driftX = 0, driftY = 0, vx = (Math.random() - 0.5) * 0.3, vy = (Math.random() - 0.5) * 0.3;
+            function drift() {
+                if (!isActive) return;
+                vx += (Math.random() - 0.5) * 0.02; vy += (Math.random() - 0.5) * 0.02;
+                vx *= 0.98; vy *= 0.98;
+                driftX = Math.max(-20, Math.min(20, driftX + vx));
+                driftY = Math.max(-20, Math.min(20, driftY + vy));
+                thought.style.transform = `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px))`;
+                thought.style.left = '50%'; thought.style.top = '50%';
+                requestAnimationFrame(drift);
+            }
+            drift();
+
+            runBreathingCycles(thought);
+        }
+
+        async function runBreathingCycles(thought) {
+            const dots = cycleIndicator.querySelectorAll('.cycle-dot');
+
+            for (let cycle = 0; cycle < CYCLES_REQUIRED; cycle++) {
+                const isFinal = cycle === CYCLES_REQUIRED - 1;
+
+                // INHALE
+                document.body.className = 'phase-inhale';
+                breathingRing.className = 'breathing-ring inhale';
+                breathText.textContent = 'Inhale...';
+                thought.classList.remove('energized');
+                await wait(INHALE_TIME * 1000);
+
+                // HOLD
+                document.body.className = 'phase-hold';
+                breathingRing.className = 'breathing-ring hold';
+                breathText.textContent = 'Hold...';
+                thought.classList.add('energized');
+                await wait(HOLD_TIME * 1000);
+
+                // EXHALE
+                document.body.className = 'phase-exhale';
+                breathingRing.className = 'breathing-ring exhale';
+                breathText.textContent = isFinal ? 'Exhale and Release...' : 'Exhale...';
+                thought.classList.remove('energized');
+                await wait(EXHALE_TIME * 1000);
+
+                dots[cycle].classList.add('complete');
+            }
+
+            // BLAST
+            const rect = thought.getBoundingClientRect();
+            const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+
+            document.body.classList.add('screen-shake');
+            createExplosion(x, y);
+            playSound('blast');
+
+            thought.remove();
+            breathingRing.className = 'breathing-ring';
+            breathText.textContent = '';
+            cycleIndicator.innerHTML = '';
+            document.body.className = 'phase-idle';
+
+            setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+
+            thoughtCount++;
+            counterElement.textContent = thoughtCount;
+            counterElement.style.transform = 'scale(1.2)';
+            setTimeout(() => counterElement.style.transform = 'scale(1)', 150);
+
+            isActive = false;
+            input.disabled = false;
+            releaseBtn.disabled = false;
+            input.value = '';
+            input.focus();
+        }
+
+        function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        releaseBtn.addEventListener('click', releaseThought);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') releaseThought(); });
+        input.focus();
+        document.addEventListener('click', initAudio, { once: true });
+    </script>
+</body>
+
+</html>
